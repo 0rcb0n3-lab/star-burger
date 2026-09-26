@@ -36,8 +36,8 @@ class Migration(migrations.Migration):
                 ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='order_items', to='foodcartapp.product', verbose_name='товар')),
             ],
             options={
-                'verbose_name': 'часть заказа',
-                'verbose_name_plural': 'детали заказа',
+                'verbose_name': 'товар',
+                'verbose_name_plural': 'товары',
             },
         ),
     ]
