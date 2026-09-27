@@ -123,6 +123,7 @@ class OrderAdmin(admin.ModelAdmin):
     ]
     list_display = [
         'id',
+        'status',
         'firstname',
         'lastname',
         'phonenumber',
