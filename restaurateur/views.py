@@ -1,14 +1,10 @@
-import requests
-
 from collections import defaultdict
 
 from django import forms
 from django.shortcuts import redirect, render
 from django.views import View
 from django.urls import reverse_lazy
-from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
-from django.core.cache import cache
 from geopy import distance
 
 from django.contrib.auth import authenticate, login
@@ -17,7 +13,7 @@ from django.db.models import Case, When, Value, IntegerField
 
 
 from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
-from .geocoder import fetch_coordinates
+from geocoding.geocoder import get_coordinates
 
 
 class Login(forms.Form):
@@ -99,22 +95,6 @@ def view_restaurants(request):
     })
 
 
-def get_or_none_coordinates(address):
-    cache_key = f'geocoder:{address}'
-    coordinates = cache.get(cache_key)
-    if coordinates:
-        return coordinates
-
-    try:
-        coordinates = fetch_coordinates(settings.YANDEX_GEOCODER_API_KEY, address)
-    except requests.exceptions.RequestException:
-        coordinates = None
-
-    if coordinates:
-        cache.set(cache_key, coordinates, settings.GEOCODER_CACHE_TIMEOUT)
-    return coordinates
-
-
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
     status_order = Case(
@@ -154,11 +134,11 @@ def view_orders(request):
         restaurant_sets = [restaurants_by_product.get(product_id, set()) for product_id in product_ids]
         available_restaurants = set.intersection(*restaurant_sets) if restaurant_sets else set()
 
-        order_coordinates = get_or_none_coordinates(order.address)
+        order_coordinates = get_coordinates(order.address)
 
         restaurants_with_distance = []
         for restaurant in available_restaurants:
-            restaurant_coordinates = get_or_none_coordinates(restaurant.address)
+            restaurant_coordinates = get_coordinates(restaurant.address)
             if order_coordinates and restaurant_coordinates:
                 order_distance = round(distance.distance(order_coordinates, restaurant_coordinates).km, 2)
             else:
