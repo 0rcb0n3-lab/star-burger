@@ -128,6 +128,7 @@ class OrderAdmin(admin.ModelAdmin):
         'lastname',
         'phonenumber',
         'address',
+        'registered_at',
     ]
     fields = [
         'firstname',
@@ -136,7 +137,18 @@ class OrderAdmin(admin.ModelAdmin):
         'address',
         'status',
         'comment',
+        'registered_at',
+        'called_at',
+        'delivered_at',
     ]
+    readonly_fields = ['registered_at']
+
+    def save_formset(self, request, form, formset, change):
+        for order_item_form in formset.forms:
+            order_item = order_item_form.instance
+            if order_item.pk is None and order_item.product_id:
+                order_item.price = order_item.product.price
+        super().save_formset(request, form, formset, change)
 
     def response_change(self, request, obj):
         next_url = request.GET.get('next')
