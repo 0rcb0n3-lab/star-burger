@@ -48,7 +48,7 @@ def product_list_api(request):
                 'id': product.category.id,
                 'name': product.category.name,
             } if product.category else None,
-            'image': product.image.url,
+            'image': product.image.url if product.image else None,
             'restaurant': {
                 'id': product.id,
                 'name': product.name,
@@ -67,4 +67,4 @@ def register_order(request):
     serializer.is_valid(raise_exception=True)
     serializer.save()
 
-    return Response(serializer.data)
+    return Response(serializer.data, status=201)
