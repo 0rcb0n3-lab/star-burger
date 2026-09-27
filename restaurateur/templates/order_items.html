@@ -40,8 +40,15 @@
             <details>
               <summary>Может приготовить</summary>
               <ul>
-                {% for restaurant in order.available_restaurants %}
-                  <li>{{ restaurant.name }}</li>
+                {% for restaurant, order_distance in order.restaurants_with_distance %}
+                  <li>
+                    {{ restaurant.name }}
+                    {% if order_distance is not None %}
+                      -{{ order_distance }} км
+                    {% else %}
+                      - не удалось определить расстояние
+                    {% endif %}
+                  </li>
                 {% endfor %}
               </ul>
             </details>

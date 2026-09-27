@@ -4,3 +4,5 @@ django-phonenumber-field==8.5.*
 phonenumbers==9.0.*
 Pillow==11.2.*
 environs[django]==14.2.*
+geopy==2.5.*
+requests==2.34.*
