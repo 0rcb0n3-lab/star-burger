@@ -14,8 +14,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 SECRET_KEY = env('SECRET_KEY')
 YANDEX_GEOCODER_API_KEY = env('YANDEX_GEOCODER_API_KEY', default=None)
-GEOCODER_CACHE_TIMEOUT = env.int('GEOCODER_CACHE_TIMEOUT', 60 * 60 * 24)
-DEBUG = env.bool('DEBUG', True)
+GEOCODER_PLACE_TTL = env.int('GEOCODER_PLACE_TTL', 60 * 60 * 24)
+DEBUG = env.bool('DEBUG', False)
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', ['127.0.0.1', 'localhost'])
 
@@ -28,11 +28,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'debug_toolbar',
     'phonenumber_field',
     'rest_framework',
     'geocoding.apps.GeocodingConfig',
 ]
+
+if DEBUG:
+    INSTALLED_APPS.append('debug_toolbar')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -42,8 +44,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
+
+if DEBUG:
+    MIDDLEWARE.append('debug_toolbar.middleware.DebugToolbarMiddleware')
 
 ROOT_URLCONF = 'star_burger.urls'
 
@@ -118,9 +122,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-INTERNAL_IPS = [
-    '127.0.0.1'
-]
+INTERNAL_IPS = env.list('INTERNAL_IPS', ['127.0.0.1'])
 
 
 STATICFILES_DIRS = [

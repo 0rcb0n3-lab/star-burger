@@ -13,7 +13,7 @@ from django.db.models import Case, When, Value, IntegerField
 
 
 from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
-from geocoding.geocoder import get_coordinates
+from geocoding.geocoder import get_coordinates, prefetch_coordinates
 
 
 class Login(forms.Form):
@@ -126,6 +126,8 @@ def view_orders(request):
 
     order_items = list(orders)
 
+    pending = []
+    addresses = set()
     for order in order_items:
         if order.restaurant_id:
             continue
@@ -133,12 +135,23 @@ def view_orders(request):
         product_ids = {item.product_id for item in order.items.all()}
         restaurant_sets = [restaurants_by_product.get(product_id, set()) for product_id in product_ids]
         available_restaurants = set.intersection(*restaurant_sets) if restaurant_sets else set()
+        available_restaurants = {
+            restaurant for restaurant in available_restaurants
+            if restaurant.address.strip()
+        }
 
-        order_coordinates = get_coordinates(order.address)
+        pending.append((order, available_restaurants))
+        addresses.add(order.address)
+        addresses.update(restaurant.address for restaurant in available_restaurants)
+
+    preloaded = prefetch_coordinates(addresses)
+
+    for order, available_restaurants in pending:
+        order_coordinates = get_coordinates(order.address, preloaded)
 
         restaurants_with_distance = []
         for restaurant in available_restaurants:
-            restaurant_coordinates = get_coordinates(restaurant.address)
+            restaurant_coordinates = get_coordinates(restaurant.address, preloaded)
             if order_coordinates and restaurant_coordinates:
                 order_distance = round(distance.distance(order_coordinates, restaurant_coordinates).km, 2)
             else:

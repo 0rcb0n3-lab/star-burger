@@ -14,6 +14,9 @@ class PlaceAdmin(admin.ModelAdmin):
     readonly_fields = [
         'queried_at',
     ]
+    ordering = [
+        '-queried_at',
+    ]
     search_fields = [
         'address',
     ]

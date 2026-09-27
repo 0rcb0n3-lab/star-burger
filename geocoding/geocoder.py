@@ -3,9 +3,12 @@ from datetime import timedelta
 import requests
 
 from django.conf import settings
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from geocoding.models import Place
+
+_PREFETCH_CHUNK = 500
 
 
 def fetch_coordinates(apikey, address):
@@ -44,10 +47,35 @@ def fetch_coordinates(apikey, address):
     return float(lat), float(lon)
 
 
-def get_coordinates(address):
-    place = Place.objects.filter(address=address).first()
-    if place and is_fresh(place):
-        return coordinates_of(place)
+_STALE = object()
+
+
+def _chunks(items, size):
+    items = list(items)
+    for start in range(0, len(items), size):
+        yield items[start:start + size]
+
+
+def prefetch_coordinates(addresses):
+    if not addresses:
+        return {}
+
+    preloaded = {}
+    for chunk in _chunks(addresses, _PREFETCH_CHUNK):
+        for place in Place.objects.filter(address__in=chunk):
+            preloaded[place.address] = (
+                coordinates_of(place) if is_fresh(place) else _STALE
+            )
+    return preloaded
+
+
+def get_coordinates(address, preloaded=None):
+    if preloaded is None:
+        place = Place.objects.filter(address=address).first()
+        if place and is_fresh(place):
+            return coordinates_of(place)
+    elif address in preloaded and preloaded[address] is not _STALE:
+        return preloaded[address]
 
     try:
         coordinates = fetch_coordinates(settings.YANDEX_GEOCODER_API_KEY, address)
@@ -57,19 +85,23 @@ def get_coordinates(address):
         return None
 
     latitude, longitude = coordinates if coordinates else (None, None)
-    Place.objects.update_or_create(
-        address=address,
-        defaults={
-            'latitude': latitude,
-            'longitude': longitude,
-        },
-    )
+    try:
+        with transaction.atomic():
+            Place.objects.update_or_create(
+                address=address,
+                defaults={
+                    'latitude': latitude,
+                    'longitude': longitude,
+                },
+            )
+    except IntegrityError:
+        pass
     return coordinates
 
 
 def is_fresh(place):
     return timezone.now() - place.queried_at < timedelta(
-        seconds=settings.GEOCODER_CACHE_TIMEOUT
+        seconds=settings.GEOCODER_PLACE_TTL
     )
 
 
