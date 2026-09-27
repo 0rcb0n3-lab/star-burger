@@ -21,6 +21,7 @@
       <th>Адрес доставки</th>
       <th>Сумма заказа</th>
       <th>Ресторан</th>
+      <th>Комментарии</th>
       <th>Ссылка на админку</th>
     </tr>
 
@@ -54,6 +55,7 @@
             </details>
           {% endif %}
         </td>
+        <td>{{ order.comment }}</td>
         <td>
           <a href="{% url 'admin:foodcartapp_order_change' object_id=order.id %}?next={{ request.path|urlencode }}">Редактировать</a>
         </td>
