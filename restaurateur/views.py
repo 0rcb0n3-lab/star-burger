@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django import forms
 from django.shortcuts import redirect, render
 from django.views import View
@@ -6,9 +8,10 @@ from django.contrib.auth.decorators import user_passes_test
 
 from django.contrib.auth import authenticate, login
 from django.contrib.auth import views as auth_views
+from django.db.models import Case, When, Value, IntegerField
 
 
-from foodcartapp.models import Product, Restaurant, Order
+from foodcartapp.models import Product, Restaurant, Order, RestaurantMenuItem
 
 
 class Login(forms.Form):
@@ -92,12 +95,41 @@ def view_restaurants(request):
 
 @user_passes_test(is_manager, login_url='restaurateur:login')
 def view_orders(request):
+    status_order = Case(
+        *[
+            When(status=status, then=Value(index))
+            for index, (status, _label) in enumerate(Order.STATUS_CHOICES)
+        ],
+        output_field=IntegerField(),
+    )
+
     orders = (
         Order.objects
         .exclude(status=Order.STATUS_COMPLETED)
         .with_total_price()
+        .select_related('restaurant')
         .prefetch_related('items__product')
+        .annotate(status_order=status_order)
+        .order_by('status_order')
     )
+
+    menu_items = (
+        RestaurantMenuItem.objects
+        .filter(availability=True)
+        .select_related('restaurant', 'product')
+    )
+    restaurants_by_product = defaultdict(set)
+    for menu_item in menu_items:
+        restaurants_by_product[menu_item.product_id].add(menu_item.restaurant)
+
+    order_items = list(orders)
+    for order in order_items:
+        if order.restaurant_id:
+            continue
+        product_ids = {item.product_id for item in order.items.all()}
+        restaurant_sets = [restaurants_by_product.get(product_id, set()) for product_id in product_ids]
+        order.available_restaurants = set.intersection(*restaurant_sets) if restaurant_sets else set()
+
     return render(request, 'order_items.html', {
-        'order_items': orders,
+        'order_items': order_items,
     })
