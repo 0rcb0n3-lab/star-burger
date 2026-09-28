@@ -164,11 +164,12 @@ class Order(models.Model):
         default=STATUS_PENDING,
         db_index=True,
     )
+
     payment_method = models.CharField(
         'способ оплаты',
         max_length=20,
         choices=PAYMENT_CHOICES,
-        default=PAYMENT_CASH,
+        null=True,
         db_index=True,
     )
     comment = models.TextField('комментарий', blank=True)
