@@ -9,12 +9,10 @@ class OrderItemSerializer(serializers.ModelSerializer):
         queryset=Product.objects.all(),
     )
     quantity = serializers.IntegerField(min_value=1)
-    price = serializers.DecimalField(max_digits=8, decimal_places=2, read_only=True)
-    product_name = serializers.CharField(source='product.name', read_only=True)
 
     class Meta:
         model = OrderItem
-        fields = ['product', 'product_name', 'quantity', 'price']
+        fields = ['product', 'quantity']
 
 
 class OrderSerializer(serializers.ModelSerializer):
