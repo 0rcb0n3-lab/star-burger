@@ -148,6 +148,7 @@ def view_orders(request):
 
     for order, available_restaurants in pending:
         order_coordinates = get_coordinates(order.address, preloaded)
+        order.address_not_found = order_coordinates is None
 
         restaurants_with_distance = []
         for restaurant in available_restaurants:
