@@ -50,7 +50,7 @@ def fetch_coordinates(apikey, address):
 _STALE = object()
 
 
-def _chunks(items, size):
+def _split_into_chunks(items, size):
     items = list(items)
     for start in range(0, len(items), size):
         yield items[start:start + size]
@@ -61,10 +61,10 @@ def prefetch_coordinates(addresses):
         return {}
 
     preloaded = {}
-    for chunk in _chunks(addresses, _PREFETCH_CHUNK):
+    for chunk in _split_into_chunks(addresses, _PREFETCH_CHUNK):
         for place in Place.objects.filter(address__in=chunk):
             preloaded[place.address] = (
-                coordinates_of(place) if is_fresh(place) else _STALE
+                get_coordinates_of_place(place) if is_fresh(place) else _STALE
             )
     return preloaded
 
@@ -73,7 +73,7 @@ def get_coordinates(address, preloaded=None):
     if preloaded is None:
         place = Place.objects.filter(address=address).first()
         if place and is_fresh(place):
-            return coordinates_of(place)
+            return get_coordinates_of_place(place)
     elif address in preloaded and preloaded[address] is not _STALE:
         return preloaded[address]
 
@@ -105,7 +105,7 @@ def is_fresh(place):
     )
 
 
-def coordinates_of(place):
+def get_coordinates_of_place(place):
     if place.latitude is None or place.longitude is None:
         return None
     return place.latitude, place.longitude
