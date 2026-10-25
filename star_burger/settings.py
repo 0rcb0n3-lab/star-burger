@@ -17,7 +17,7 @@ YANDEX_GEOCODER_API_KEY = env('YANDEX_GEOCODER_API_KEY', default=None)
 GEOCODER_PLACE_TTL = env.int('GEOCODER_PLACE_TTL', 60 * 60 * 24)
 DEBUG = env.bool('DEBUG', False)
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', ['127.0.0.1', 'localhost'])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', ['127.0.0.1', 'localhost', '80.249.144.212'])
 
 INSTALLED_APPS = [
     'foodcartapp.apps.FoodcartappConfig',
@@ -91,7 +91,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 DATABASES = {
-    'default': dj_database_url.config(
+    'default': env.dj_db_url.(
+	'DATABASE_URL',
         default='sqlite:////{0}'.format(os.path.join(BASE_DIR, 'db.sqlite3'))
     )
 }
