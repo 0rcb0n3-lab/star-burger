@@ -1,7 +1,10 @@
+from decimal import Decimal
+
 from django.db import models
 from django.core.validators import MinValueValidator
 from phonenumber_field.modelfields import PhoneNumberField
-from django.db.models import Sum, F
+from django.db.models import F, OuterRef, Subquery, Sum, Value
+from django.db.models.functions import Coalesce
 
 
 class Restaurant(models.Model):
@@ -127,8 +130,19 @@ class RestaurantMenuItem(models.Model):
 
 class OrderQuerySet(models.QuerySet):
     def with_total_price(self):
+        items_total = (
+            OrderItem.objects
+            .filter(order=OuterRef('pk'))
+            .order_by()
+            .values('order')
+            .annotate(total=Sum(F('quantity') * F('price')))
+            .values('total')
+        )
         return self.annotate(
-            total_price=Sum(F('items__quantity') * F('items__price')),
+            total_price=Coalesce(
+                Subquery(items_total),
+                Value(Decimal('0')),
+            )
         )
 
 
